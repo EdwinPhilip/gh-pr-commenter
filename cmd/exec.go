@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"text/template"
 
 	"github.com/google/go-github/v41/github"
 	"github.com/machinebox/graphql"
@@ -35,7 +36,11 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 
 	// Replace ---OUTPUT--- with the actual command output
 	commentContent := strings.Replace(string(templateContent), "---OUTPUT---", output, 1)
-	fmt.Println(commentContent)
+
+	// Prepend the title to the comment content
+	title := fmt.Sprintf("## %s Output\n", command[0])
+	commentContent = title + commentContent
+
 	// Create a new markdown file with the combined content
 	commandName := strings.Split(command[0], "/")
 	newFilename := fmt.Sprintf("%s-%d-%s.md", repo, prNumber, commandName[len(commandName)-1])
