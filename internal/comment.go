@@ -13,7 +13,7 @@ import (
 )
 
 const maxCommentLength = 62000
-const identifierPrefix = "<!-- Comment"
+const identifierPrefix = "<!-- Part"
 const maxRetries = 3
 
 // ReadCommentFromFile reads the comment message from a file
@@ -27,13 +27,19 @@ func ReadCommentFromFile(filename string) (string, error) {
 
 // splitMessage splits the message into parts each with a maximum length of maxCommentLength
 func splitMessage(message string) []string {
+	lines := strings.SplitN(message, "\n", 2)
+	title := lines[0]
+	content := ""
+	if len(lines) > 1 {
+		content = lines[1]
+	}
 	var parts []string
-	for i := 0; i < len(message); i += maxCommentLength {
+	for i := 0; i < len(content); i += maxCommentLength {
 		end := i + maxCommentLength
-		if end > len(message) {
-			end = len(message)
+		if end > len(content) {
+			end = len(content)
 		}
-		part := fmt.Sprintf("%s <!-- %s #%d -->\n%s", identifierPrefix, identifierPrefix, len(parts)+1, message[i:end])
+		part := fmt.Sprintf("%s <!-- Part #%d -->\n%s", title, len(parts)+1, content[i:end])
 		parts = append(parts, part)
 	}
 	return parts
@@ -111,7 +117,7 @@ func createCommentWithRetry(ctx context.Context, client *github.Client, owner, r
 func filterCommentsByTitle(comments []*github.IssueComment, title string) []*github.IssueComment {
 	var filtered []*github.IssueComment
 	for _, comment := range comments {
-		if strings.HasPrefix(comment.GetBody(), title) && strings.Contains(comment.GetBody(), identifierPrefix) {
+		if strings.Contains(comment.GetBody(), title) && strings.Contains(comment.GetBody(), identifierPrefix) {
 			filtered = append(filtered, comment)
 		}
 	}

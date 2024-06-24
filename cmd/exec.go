@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"strings"
-	"text/template"
 
 	"github.com/google/go-github/v41/github"
 	"github.com/machinebox/graphql"
