@@ -42,7 +42,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 
 	// Create a new markdown file with the combined content
 	commandName := strings.Split(command[0], "/")
-	newFilename := fmt.Sprintf("%s-%d-%s.md", repo, prNumber, commandName[len(commandName)-1])
+	newFilename := fmt.Sprintf(".comment-%s-%d-%s.md", repo, prNumber, commandName[len(commandName)-1])
 	err = os.WriteFile(newFilename, []byte(commentContent), 0644)
 	if err != nil {
 		log.Fatalf("Error writing to file: %v", err)
