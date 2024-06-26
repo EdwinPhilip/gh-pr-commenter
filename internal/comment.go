@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -12,73 +11,44 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-const maxCommentLength = 62000
-const identifierPrefix = "<!-- Part"
 const maxRetries = 3
+const identifierPrefix = "<!-- Part"
 
 // ReadCommentFromFile reads the comment message from a file
 func ReadCommentFromFile(filename string) (string, error) {
-	content, err := ioutil.ReadFile(filename)
+	content, err := os.ReadFile(filename)
 	if err != nil {
 		return "", fmt.Errorf("error reading file: %v", err)
 	}
 	return string(content), nil
 }
 
-// splitMessage splits the message into parts each with a maximum length of maxCommentLength
-func splitMessage(message string) []string {
-	lines := strings.SplitN(message, "\n", 2)
-	title := lines[0]
-	content := ""
-	if len(lines) > 1 {
-		content = lines[1]
-	}
-	var parts []string
-	for i := 0; i < len(content); i += maxCommentLength {
-		end := i + maxCommentLength
-		if end > len(content) {
-			end = len(content)
-		}
-		part := fmt.Sprintf("%s <!-- Part #%d -->\n%s", title, len(parts)+1, content[i:end])
-		parts = append(parts, part)
-	}
-	return parts
-}
-
 // UpsertComment handles creating or updating comments on the specified PR
-func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, message string) {
+func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, commentContentFile, title, identifier string) {
+	message, err := ReadCommentFromFile(commentContentFile)
+	if err != nil {
+		fmt.Printf("Error reading comment file: %v\n", err)
+		return
+	}
 	comments, err := listCommentsWithRetry(ctx, client, owner, repo, prNumber)
 	if err != nil {
 		fmt.Printf("Error listing comments: %v\n", err)
 		return
 	}
 
-	// Determine the title
-	lines := strings.Split(message, "\n")
-	title := ""
-	if len(lines) > 0 && strings.HasPrefix(lines[0], "##") {
-		title = strings.TrimSpace(lines[0][2:])
-	} else {
-		title = fmt.Sprintf("Output of command for PR %d", prNumber)
-		message = fmt.Sprintf("## %s\n%s", title, message)
-	}
-
-	parts := splitMessage(message)
-	existingComments := filterCommentsByTitle(comments, identifierPrefix)
+	existingComments := filterCommentsByTitleAndIdentifier(comments, title, identifier)
 
 	// Always hide previous comments
 	minimizeComments(ctx, graphqlClient, existingComments)
 
 	// Always create new parts with unique content to avoid collapsing
 	timestamp := time.Now().Format(time.RFC3339)
-	for i, part := range parts {
-		uniquePart := fmt.Sprintf("%s\n<!-- Unique ID: %d %s -->", part, i+1, timestamp)
-		comment := &github.IssueComment{Body: &uniquePart}
-		err := createCommentWithRetry(ctx, client, owner, repo, prNumber, comment)
-		if err != nil {
-			fmt.Printf("Error creating comment: %v\n", err)
-			return
-		}
+	uniquePart := fmt.Sprintf("%s\n<!-- Unique ID: %s -->", message, timestamp)
+	comment := &github.IssueComment{Body: &uniquePart}
+	err = createCommentWithRetry(ctx, client, owner, repo, prNumber, comment)
+	if err != nil {
+		fmt.Printf("Error creating comment: %v\n", err)
+		return
 	}
 
 	fmt.Println("Comment upserted successfully.")
@@ -113,11 +83,11 @@ func createCommentWithRetry(ctx context.Context, client *github.Client, owner, r
 	return fmt.Errorf("error creating comment after %d retries: %w", maxRetries, err)
 }
 
-// filterCommentsByTitle filters comments to find those that match the given title
-func filterCommentsByTitle(comments []*github.IssueComment, title string) []*github.IssueComment {
+// filterCommentsByTitleAndIdentifier filters comments to find those that match the given title and identifier
+func filterCommentsByTitleAndIdentifier(comments []*github.IssueComment, title, identifier string) []*github.IssueComment {
 	var filtered []*github.IssueComment
 	for _, comment := range comments {
-		if strings.Contains(comment.GetBody(), title) && strings.Contains(comment.GetBody(), identifierPrefix) {
+		if strings.Contains(comment.GetBody(), title) && strings.Contains(comment.GetBody(), identifier) {
 			filtered = append(filtered, comment)
 		}
 	}
