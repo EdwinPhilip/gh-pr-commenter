@@ -24,7 +24,7 @@ func ReadCommentFromFile(filename string) (string, error) {
 }
 
 // UpsertComment handles creating or updating comments on the specified PR
-func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, commentContentFile string) {
+func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, commentContentFile, title, identifier string) {
 	message, err := ReadCommentFromFile(commentContentFile)
 	if err != nil {
 		fmt.Printf("Error reading comment file: %v\n", err)
@@ -36,7 +36,7 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 		return
 	}
 
-	existingComments := filterCommentsByTitle(comments, identifierPrefix)
+	existingComments := filterCommentsByTitleAndIdentifier(comments, title, identifier)
 
 	// Always hide previous comments
 	minimizeComments(ctx, graphqlClient, existingComments)
@@ -83,11 +83,11 @@ func createCommentWithRetry(ctx context.Context, client *github.Client, owner, r
 	return fmt.Errorf("error creating comment after %d retries: %w", maxRetries, err)
 }
 
-// filterCommentsByTitle filters comments to find those that match the given title
-func filterCommentsByTitle(comments []*github.IssueComment, title string) []*github.IssueComment {
+// filterCommentsByTitleAndIdentifier filters comments to find those that match the given title and identifier
+func filterCommentsByTitleAndIdentifier(comments []*github.IssueComment, title, identifier string) []*github.IssueComment {
 	var filtered []*github.IssueComment
 	for _, comment := range comments {
-		if strings.Contains(comment.GetBody(), title) && strings.Contains(comment.GetBody(), identifierPrefix) {
+		if strings.Contains(comment.GetBody(), title) && strings.Contains(comment.GetBody(), identifier) {
 			filtered = append(filtered, comment)
 		}
 	}
