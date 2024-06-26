@@ -16,8 +16,12 @@ import (
 
 // ExecuteAndComment runs the provided command, captures its output, and posts it as a comment on the PR
 func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, command []string) {
+	// Split the command into command and arguments
+	cmdName := command[0]
+	cmdArgs := command[1:]
+
 	// Execute the provided command and capture its output
-	cmd := exec.Command(command[0], command[1:]...)
+	cmd := exec.Command(cmdName, cmdArgs...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
@@ -37,7 +41,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	commentContent := strings.Replace(string(templateContent), "---OUTPUT---", output, 1)
 
 	// Prepend the title to the comment content
-	title := fmt.Sprintf("## %s Output\n", command[0])
+	title := fmt.Sprintf("### %s output\n", strings.Join(command, " "))
 	commentContent = title + commentContent
 
 	// Create a new markdown file with the combined content
@@ -48,12 +52,6 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		log.Fatalf("Error writing to file: %v", err)
 	}
 
-	// Read the new markdown file content
-	commentMessage, err := internal.ReadCommentFromFile(newFilename)
-	if err != nil {
-		log.Fatalf("Error reading comment from file: %v", err)
-	}
-
 	// Use the existing logic to post the comment
-	internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, commentMessage)
+	internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename)
 }

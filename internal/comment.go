@@ -46,7 +46,12 @@ func splitMessage(message string) []string {
 }
 
 // UpsertComment handles creating or updating comments on the specified PR
-func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, message string) {
+func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, commentContentFile string) {
+	message, err := ReadCommentFromFile(commentContentFile)
+	if err != nil {
+		fmt.Printf("Error reading comment file: %v\n", err)
+		return
+	}
 	comments, err := listCommentsWithRetry(ctx, client, owner, repo, prNumber)
 	if err != nil {
 		fmt.Printf("Error listing comments: %v\n", err)
@@ -56,11 +61,11 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 	// Determine the title
 	lines := strings.Split(message, "\n")
 	title := ""
-	if len(lines) > 0 && strings.HasPrefix(lines[0], "##") {
+	if len(lines) > 0 && strings.HasPrefix(lines[0], "###") {
 		title = strings.TrimSpace(lines[0][2:])
 	} else {
 		title = fmt.Sprintf("Output of command for PR %d", prNumber)
-		message = fmt.Sprintf("## %s\n%s", title, message)
+		message = fmt.Sprintf("### %s\n%s", title, message)
 	}
 
 	parts := splitMessage(message)
@@ -168,7 +173,7 @@ func minimizeComment(ctx context.Context, graphqlClient *graphql.Client, comment
 	var respData struct {
 		MinimizeComment struct {
 			MinimizedComment struct {
-				IsMinimized    bool
+				IsMinimized     bool
 				MinimizedReason string
 			}
 		}
