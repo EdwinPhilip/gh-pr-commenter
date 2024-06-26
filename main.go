@@ -2,20 +2,18 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"os"
 	"strconv"
 
+	"github.com/machinebox/graphql"
 	"gh-pr-commenter/cmd"
 	"gh-pr-commenter/internal"
-
-	"github.com/machinebox/graphql"
 )
 
 func main() {
-	if len(os.Args) < 2 {
-		log.Fatalf("usage: %s <command>", os.Args[1])
+	if len(os.Args) < 3 || os.Args[1] != "exec" {
+		log.Fatalf("usage: %s exec <command>", os.Args[0])
 	}
 
 	owner := os.Getenv("BASE_REPO_OWNER")
@@ -34,7 +32,6 @@ func main() {
 	client := internal.NewGitHubClient(ctx)
 	graphqlClient := graphql.NewClient("https://api.github.com/graphql")
 
-	command := os.Args[2:]
-    fmt.Println("Command: ", command)
+	command := os.Args[2]
 	cmd.ExecuteAndComment(ctx, client, graphqlClient, owner, repo, prNumber, command)
 }
