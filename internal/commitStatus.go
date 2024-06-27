@@ -11,6 +11,9 @@ import (
 // post github commit status
 func PostCommitStatus(ctx context.Context, client *github.Client, owner, repo, sha, state, context string) error {
 	commit_state := strings.ToUpper(string(state[0])) + state[1:]
+	if state == "failure" {
+		commit_state = "Failed"
+	}
 	status := &github.RepoStatus{
 		State:       &state,
 		Description: &commit_state,
