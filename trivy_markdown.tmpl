@@ -8,61 +8,61 @@
     
     {{- if $hasMisconfigurations }}
         {{- range . }}
-        <h3>Target <code>{{ escapeXML .Target }}</code></h3>
-        <h4>Misconfigurations</h4>
-        <table>
-            <tr>
-                <th>Type</th>
-                <th>ID</th>
-                <th>Check</th>
-                <th>Severity</th>
-                <th>Message</th>
-            </tr>
-            {{- range .Misconfigurations }}
-            <tr>
-                <td>{{ escapeXML .Type }}</td>
-                <td>{{ escapeXML .ID }}</td>
-                <td>{{ escapeXML .Title }}</td>
-                <td>{{ escapeXML .Severity }}</td>
-                <td>
-                  {{ escapeXML .Message }}
-                  <br><a href={{ escapeXML .PrimaryURL | printf "%q" }}>{{ escapeXML .PrimaryURL }}</a></br>
-                </td>
-            </tr>
-            {{- end }}
-        </table>
-        {{- end }}
-
-        <h4>Summary</h4>
-        <table>
-            <tr>
-                <th>Total Misconfigurations</th>
-                <th>Critical Severity</th>
-                <th>High Severity</th>
-                <th>Medium Severity</th>
-                <th>Low Severity</th>
-            </tr>
-            <tr>
-                {{- $total := 0 }}{{- $critical := 0 }}{{- $high := 0 }}{{- $medium := 0 }}{{- $low := 0 }}
-                {{- range . }}
-                    {{- range .Misconfigurations }}
-                        {{- $total = add $total 1 }}
-                        {{- if eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}
-                        {{- if eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}
-                        {{- if eq .Severity "MEDIUM" }}{{- $medium = add $medium 1 }}{{- end }}
-                        {{- if eq .Severity "LOW" }}{{- $low = add $low 1 }}{{- end }}
-                    {{- end }}
-                {{- end }}
-                <td>{{ $total }}</td>
-                <td>{{ $critical }}</td>
-                <td>{{ $high }}</td>
-                <td>{{ $medium }}</td>
-                <td>{{ $low }}</td>
-            </tr>
-        </table>
-    {{- else }}
-<h3>Trivy scan passed, no misconfiguration found.</h3>
+<h3>Target <code>{{ escapeXML .Target }}</code></h3>
+<h4>Misconfigurations</h4>
+<table>
+    <tr>
+        <th>Type</th>
+        <th>ID</th>
+        <th>Check</th>
+        <th>Severity</th>
+        <th>Message</th>
+    </tr>
+    {{- range .Misconfigurations }}
+    <tr>
+        <td>{{ escapeXML .Type }}</td>
+        <td>{{ escapeXML .ID }}</td>
+        <td>{{ escapeXML .Title }}</td>
+        <td>{{ escapeXML .Severity }}</td>
+        <td>
+            {{ escapeXML .Message }}
+            <br><a href={{ escapeXML .PrimaryURL | printf "%q" }}>{{ escapeXML .PrimaryURL }}</a></br>
+        </td>
+    </tr>
     {{- end }}
+</table>
+{{- end }}
+
+<h4>Summary</h4>
+<table>
+    <tr>
+        <th>Total Misconfigurations</th>
+        <th>Critical Severity</th>
+        <th>High Severity</th>
+        <th>Medium Severity</th>
+        <th>Low Severity</th>
+    </tr>
+    <tr>
+        {{- $total := 0 }}{{- $critical := 0 }}{{- $high := 0 }}{{- $medium := 0 }}{{- $low := 0 }}
+        {{- range . }}
+            {{- range .Misconfigurations }}
+                {{- $total = add $total 1 }}
+                {{- if eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}
+                {{- if eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}
+                {{- if eq .Severity "MEDIUM" }}{{- $medium = add $medium 1 }}{{- end }}
+                {{- if eq .Severity "LOW" }}{{- $low = add $low 1 }}{{- end }}
+            {{- end }}
+        {{- end }}
+        <td>{{ $total }}</td>
+        <td>{{ $critical }}</td>
+        <td>{{ $high }}</td>
+        <td>{{ $medium }}</td>
+        <td>{{ $low }}</td>
+    </tr>
+</table>
+{{- else }}
+<h3>Trivy scan passed, no misconfiguration found.</h3>
+{{- end }}
 {{- else }}
 <h3>Trivy report not found.</h3>
 {{- end }}
