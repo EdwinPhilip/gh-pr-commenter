@@ -89,7 +89,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		}
 
 		// Use the existing logic to post the comment
-		internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("Part #%d", i+1))
+		internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("<!-- Part #%d -->", i+1))
 	}
 	// sleep for 5 seconds to allow the comment to be posted
 	time.Sleep(3 * time.Second)
