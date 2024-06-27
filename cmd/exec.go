@@ -28,6 +28,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	}
 	cmdName := cmdArgs[0]
 	cmdArgs = cmdArgs[1:]
+	outputExitCode := 1 
 	headCommit := os.Getenv("HEAD_COMMIT")
 	if headCommit == "" {
 		log.Fatalf("HEAD_COMMIT environment variable not set")
@@ -57,7 +58,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	}
 	if output == "" && err == nil {
 		time.Sleep(5 * time.Second)
-		internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "success", ghStatusContext)
+		outputExitCode = 0
 		output = fmt.Sprintf("%s passed.\n\nNo output was generated.", cmdName)
 	}
 
@@ -94,7 +95,11 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("Part #%d", i+1))
 	}
 	// sleep for 5 seconds to allow the comment to be posted
-	time.Sleep(3 * time.Second)
+	time.Sleep(5 * time.Second)
+	if outputExitCode == 0 {
+		internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "success", ghStatusContext)
+		return
+	}
 	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "failure", ghStatusContext)
 }
 
