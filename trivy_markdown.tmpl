@@ -1,15 +1,16 @@
 {{- if . }}
-    {{- $hasMisconfigurations := false }}
-    {{- range . }}
-        {{- if (gt (len .Misconfigurations) 0) }}
-            {{- $hasMisconfigurations = true }}
-        {{- end }}
-    {{- end }}
-    
-    {{- if $hasMisconfigurations }}
-        {{- range . }}
+{{- $hasMisconfigurations := false }}
+{{- range . }}
+{{- if (gt (len .Misconfigurations) 0) }}
+{{- $hasMisconfigurations = true }}
+{{- end }}
+{{- end }}
+
+{{- if $hasMisconfigurations }}
+{{- range . }}
+{{- if .Misconfigurations }}
 <h3>Target <code>{{ escapeXML .Target }}</code></h3>
-<h4>Misconfigurations</h4>
+<h4>TF Sec Misconfigurations</h4>
 <table>
     <tr>
         <th>Type</th>
@@ -29,39 +30,40 @@
             <br><a href={{ escapeXML .PrimaryURL | printf "%q" }}>{{ escapeXML .PrimaryURL }}</a></br>
         </td>
     </tr>
-    {{- end }}
+{{- end }}
 </table>
+{{- end }}
 {{- end }}
 
 <h4>Summary</h4>
 <table>
+    {{- $total := 0 }}{{- $critical := 0 }}{{- $high := 0 }}{{- $medium := 0 }}{{- $low := 0 }}
+    {{- range . }}
+        {{- range .Misconfigurations }}
+            {{- $total = add $total 1 }}
+            {{- if eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}
+            {{- if eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}
+            {{- if eq .Severity "MEDIUM" }}{{- $medium = add $medium 1 }}{{- end }}
+            {{- if eq .Severity "LOW" }}{{- $low = add $low 1 }}{{- end }}
+        {{- end }}
+    {{- end }}
     <tr>
-        <th>Total Misconfigurations</th>
-        <th>Critical Severity</th>
-        <th>High Severity</th>
-        <th>Medium Severity</th>
-        <th>Low Severity</th>
+        <th>Total TF Sec Misconfigurations</th>
+        {{ if gt $critical 0 }}<th>Critical Severity</th>{{ end }}
+        {{ if gt $high 0 }}<th>High Severity</th>{{ end }}
+        {{ if gt $medium 0 }}<th>Medium Severity</th>{{ end }}
+        {{ if gt $low 0 }}<th>Low Severity</th>{{ end }}
     </tr>
     <tr>
-        {{- $total := 0 }}{{- $critical := 0 }}{{- $high := 0 }}{{- $medium := 0 }}{{- $low := 0 }}
-        {{- range . }}
-            {{- range .Misconfigurations }}
-                {{- $total = add $total 1 }}
-                {{- if eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}
-                {{- if eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}
-                {{- if eq .Severity "MEDIUM" }}{{- $medium = add $medium 1 }}{{- end }}
-                {{- if eq .Severity "LOW" }}{{- $low = add $low 1 }}{{- end }}
-            {{- end }}
-        {{- end }}
-        <td>{{ $total }}</td>
-        <td>{{ $critical }}</td>
-        <td>{{ $high }}</td>
-        <td>{{ $medium }}</td>
-        <td>{{ $low }}</td>
+        {{ if gt $critical 0 }}<td>{{ $total }}</td>{{ end }}
+        {{ if gt $critical 0 }}<td>{{ $critical }}</td>{{ end }}
+        {{ if gt $high 0 }}<td>{{ $high }}</td>{{ end }}
+        {{ if gt $medium 0 }}<td>{{ $medium }}</td>{{ end }}
+        {{ if gt $low 0 }}<td>{{ $low }}</td>{{ end }}
     </tr>
 </table>
 {{- else }}
-<h3>Trivy scan passed, no misconfiguration found.</h3>
+<h3>Trivy scan passed, no terraform security misconfiguration found.</h3>
 {{- end }}
 {{- else }}
 <h3>Trivy report not found.</h3>
