@@ -12,7 +12,7 @@ import (
 )
 
 const maxRetries = 3
-
+const minimizedMarker = "<!-- MINIMIZED -->"
 // ReadCommentFromFile reads the comment message from a file
 func ReadCommentFromFile(filename string) (string, error) {
 	content, err := os.ReadFile(filename)
@@ -53,18 +53,28 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 	fmt.Println("Comment upserted successfully.")
 }
 
-// listCommentsWithRetry lists comments with retry logic
+// listCommentsWithRetry lists comments with retry logic and pagination
 func listCommentsWithRetry(ctx context.Context, client *github.Client, owner, repo string, prNumber int) ([]*github.IssueComment, error) {
-	var comments []*github.IssueComment
+	var allComments []*github.IssueComment
 	var err error
+
 	for i := 0; i < maxRetries; i++ {
-		comments, _, err = client.Issues.ListComments(ctx, owner, repo, prNumber, nil)
-		if err == nil {
-			return comments, nil
+		opts := &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}}
+		for {
+			comments, resp, err := client.Issues.ListComments(ctx, owner, repo, prNumber, opts)
+			if err != nil {
+				fmt.Printf("Error listing comments (attempt %d/%d): %v\n", i+1, maxRetries, err)
+				time.Sleep(time.Second * time.Duration(1<<i)) // Exponential backoff
+				break
+			}
+			allComments = append(allComments, comments...)
+			if resp.NextPage == 0 {
+				return allComments, nil
+			}
+			opts.Page = resp.NextPage
 		}
-		fmt.Printf("Error listing comments (attempt %d/%d): %v\n", i+1, maxRetries, err)
-		time.Sleep(time.Second * time.Duration(1<<i)) // Exponential backoff
 	}
+
 	return nil, fmt.Errorf("error listing comments after %d retries: %w", maxRetries, err)
 }
 
@@ -93,18 +103,6 @@ func filterCommentsByTitleAndIdentifier(comments []*github.IssueComment, title, 
 	return filtered
 }
 
-// minimizeComments hides the given comments using the minimizeComment GraphQL mutation
-func minimizeComments(ctx context.Context, graphqlClient *graphql.Client, comments []*github.IssueComment) {
-	for _, comment := range comments {
-		err := minimizeCommentWithRetry(ctx, graphqlClient, comment.GetNodeID())
-		if err != nil {
-			fmt.Printf("Error minimizing comment: %v\n", err)
-			return
-		}
-	}
-	fmt.Println("Comments minimized successfully.")
-}
-
 // minimizeCommentWithRetry sends the minimizeComment GraphQL mutation with retry logic
 func minimizeCommentWithRetry(ctx context.Context, graphqlClient *graphql.Client, commentNodeID string) error {
 	var err error
@@ -117,6 +115,25 @@ func minimizeCommentWithRetry(ctx context.Context, graphqlClient *graphql.Client
 		time.Sleep(time.Second * time.Duration(1<<i)) // Exponential backoff
 	}
 	return fmt.Errorf("error minimizing comment after %d retries: %w", maxRetries, err)
+}
+
+// minimizeComments hides the given comments using the minimizeComment GraphQL mutation
+func minimizeComments(ctx context.Context, graphqlClient *graphql.Client, comments []*github.IssueComment) {
+	for _, comment := range comments {
+		// Skip comments that already have the minimized marker
+		if strings.Contains(comment.GetBody(), minimizedMarker) {
+			continue
+		}
+		err := minimizeCommentWithRetry(ctx, graphqlClient, comment.GetNodeID())
+		if err != nil {
+			fmt.Printf("Error minimizing comment: %v\n", err)
+			return
+		}
+		// Add the minimized marker to the comment body
+		updatedBody := comment.GetBody() + "\n" + minimizedMarker
+		updateCommentBody(ctx, graphqlClient, comment.GetNodeID(), updatedBody)
+	}
+	fmt.Println("Comments minimized successfully.")
 }
 
 // minimizeComment sends the minimizeComment GraphQL mutation
@@ -150,6 +167,37 @@ func minimizeComment(ctx context.Context, graphqlClient *graphql.Client, comment
 	if !respData.MinimizeComment.MinimizedComment.IsMinimized {
 		return fmt.Errorf("failed to minimize comment: %s", respData.MinimizeComment.MinimizedComment.MinimizedReason)
 	}
+	fmt.Printf("Comment minimized: %s\n", commentNodeID)
+	return nil
+}
 
+// updateCommentBody updates the body of a minimized comment to include the minimized marker
+func updateCommentBody(ctx context.Context, graphqlClient *graphql.Client, commentNodeID, updatedBody string) error {
+	req := graphql.NewRequest(`
+		mutation($id: ID!, $body: String!) {
+			updateIssueComment(input: {id: $id, body: $body}) {
+				issueComment {
+					body
+				}
+			}
+		}
+	`)
+	req.Var("id", commentNodeID)
+	req.Var("body", updatedBody)
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("GITHUB_TOKEN"))
+
+	var respData struct {
+		UpdateIssueComment struct {
+			IssueComment struct {
+				Body string
+			}
+		}
+	}
+
+	if err := graphqlClient.Run(ctx, req, &respData); err != nil {
+		return err
+	}
+
+	fmt.Printf("Comment updated with minimized marker: %s\n", commentNodeID)
 	return nil
 }
