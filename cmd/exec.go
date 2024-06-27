@@ -35,7 +35,9 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	ghStatusContext := os.Getenv("GH_STATUS_CONTEXT")
 	if ghStatusContext == "" {
 		log.Printf("GH_STATUS_CONTEXT environment variable not set")
-		ghStatusContext = "ghpc"
+		ghStatusContext = "ghpc" + "/" + cmdName
+	} else {
+		ghStatusContext = ghStatusContext + "/" + cmdName
 	}
 	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "pending", ghStatusContext)
 	// Execute the provided command and capture its output
