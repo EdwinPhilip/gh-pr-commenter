@@ -43,6 +43,9 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		log.Printf("Error running command: %v\n", err)
 		output += fmt.Sprintf("\nError running command: %v\n", err)
 	}
+	if output == "" && err == nil {
+		output = fmt.Sprintf("%s passed.\n\nNo output was generated.", cmdName)
+	}
 
 	// Split output if it exceeds maxCommentLength
 	parts := splitMessage(output)
