@@ -32,7 +32,12 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	if headCommit == "" {
 		log.Fatalf("HEAD_COMMIT environment variable not set")
 	}
-	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "pending", os.Getenv("GITHUB_SHA"))
+	ghStatusContext := os.Getenv("GH_STATUS_CONTEXT")
+	if ghStatusContext == "" {
+		log.Printf("GH_STATUS_CONTEXT environment variable not set")
+		ghStatusContext = "ghpc"
+	}
+	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "pending", ghStatusContext)
 	// Execute the provided command and capture its output
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	var out bytes.Buffer
@@ -50,7 +55,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	}
 	if output == "" && err == nil {
 		time.Sleep(5 * time.Second)
-		internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "success", os.Getenv("GITHUB_SHA"))
+		internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "success", ghStatusContext)
 		output = fmt.Sprintf("%s passed.\n\nNo output was generated.", cmdName)
 	}
 
@@ -88,7 +93,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	}
 	// sleep for 5 seconds to allow the comment to be posted
 	time.Sleep(3 * time.Second)
-	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "success", os.Getenv("GITHUB_SHA"))
+	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "failure", ghStatusContext)
 }
 
 // splitMessage splits the message into parts each with a maximum length of maxCommentLength

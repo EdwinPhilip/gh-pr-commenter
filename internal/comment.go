@@ -12,7 +12,6 @@ import (
 )
 
 const maxRetries = 3
-const identifierPrefix = "<!-- Part"
 
 // ReadCommentFromFile reads the comment message from a file
 func ReadCommentFromFile(filename string) (string, error) {

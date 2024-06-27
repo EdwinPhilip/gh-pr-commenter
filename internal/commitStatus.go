@@ -16,7 +16,12 @@ func PostCommitStatus(ctx context.Context, client *github.Client, owner, repo, s
 		Description: &commit_state,
 		Context:     &context,
 	}
+	// capture response
 	_, _, err := client.Repositories.CreateStatus(ctx, owner, repo, sha, status)
 	fmt.Printf("Commit status posted: %s\n", commit_state)
+	// log response
+	if err != nil {
+		fmt.Printf("Error creating commit status: %v\n", err)
+	}
 	return err
 }
