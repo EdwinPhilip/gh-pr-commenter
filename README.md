@@ -1,7 +1,4 @@
-Sure, here's a basic README.md template for your project, considering the modifications and GitHub Actions setup:
-
-```markdown
-# GitHub PR Commenter
+# GitHub PR Commenter (ghpc)
 
 GitHub PR Commenter is a tool that automates the process of executing commands and posting their output as comments on GitHub Pull Requests (PRs).
 
