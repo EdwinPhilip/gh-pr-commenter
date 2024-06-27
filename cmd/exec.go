@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"gh-pr-commenter/internal"
 
@@ -27,7 +28,11 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	}
 	cmdName := cmdArgs[0]
 	cmdArgs = cmdArgs[1:]
-
+	headCommit := os.Getenv("HEAD_COMMIT")
+	if headCommit == "" {
+		log.Fatalf("HEAD_COMMIT environment variable not set")
+	}
+	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "pending", os.Getenv("GITHUB_SHA"))
 	// Execute the provided command and capture its output
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	var out bytes.Buffer
@@ -44,14 +49,25 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		output += fmt.Sprintf("\nError running command: %v\n", err)
 	}
 	if output == "" && err == nil {
+		time.Sleep(5 * time.Second)
+		internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "success", os.Getenv("GITHUB_SHA"))
 		output = fmt.Sprintf("%s passed.\n\nNo output was generated.", cmdName)
 	}
 
 	// Split output if it exceeds maxCommentLength
 	parts := splitMessage(output)
 
+	templateFilename := os.Getenv("GHPC_TEMPLATE_FILE")
+	if templateFilename == "" {
+		templateFilename = "template.md"
+		err = createDefaultTemplate(templateFilename, command)
+		if err != nil {
+			log.Fatalf("Error creating default template: %v", err)
+		}
+	}
+
 	// Read the template file
-	templateContent, err := os.ReadFile("template.md")
+	templateContent, err := os.ReadFile(templateFilename)
 	if err != nil {
 		log.Printf("Error reading template file: %v\n", err)
 		return
@@ -70,6 +86,9 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		// Use the existing logic to post the comment
 		internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("Part #%d", i+1))
 	}
+	// sleep for 5 seconds to allow the comment to be posted
+	time.Sleep(3 * time.Second)
+	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "success", os.Getenv("GITHUB_SHA"))
 }
 
 // splitMessage splits the message into parts each with a maximum length of maxCommentLength
@@ -84,4 +103,26 @@ func splitMessage(message string) []string {
 		parts = append(parts, part)
 	}
 	return parts
+}
+
+// createDefaultTemplate creates a default template.md file with initial content
+func createDefaultTemplate(filename string, command string) error {
+    content := `
+<details><summary>Show Output</summary>
+
+`+"```"+`diff
+---OUTPUT---
+`+"```"+`
+</details>
+`
+	// if command contains trivy or tflint, use empty template as content
+	if strings.Contains(command, "trivy") {
+		content = `---OUTPUT---`
+	}
+	if strings.Contains(command, "tflint") {
+		content = "```"+`diff
+---OUTPUT---
+`+"```\n"
+	}
+    return os.WriteFile(filename, []byte(content), 0644)
 }

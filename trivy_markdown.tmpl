@@ -35,33 +35,37 @@
 {{- end }}
 {{- end }}
 
+{{- $total := 0 }}{{- $critical := 0 }}{{- $high := 0 }}{{- $medium := 0 }}{{- $low := 0 }}
+{{- range . }}
+    {{- range .Misconfigurations }}
+        {{- $total = add $total 1 }}
+        {{- if eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}
+        {{- if eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}
+        {{- if eq .Severity "MEDIUM" }}{{- $medium = add $medium 1 }}{{- end }}
+        {{- if eq .Severity "LOW" }}{{- $low = add $low 1 }}{{- end }}
+    {{- end }}
+{{- end }}
+{{- if (gt $total 0) }}
 <h4>Summary</h4>
 <table>
-    {{- $total := 0 }}{{- $critical := 0 }}{{- $high := 0 }}{{- $medium := 0 }}{{- $low := 0 }}
-    {{- range . }}
-        {{- range .Misconfigurations }}
-            {{- $total = add $total 1 }}
-            {{- if eq .Severity "CRITICAL" }}{{- $critical = add $critical 1 }}{{- end }}
-            {{- if eq .Severity "HIGH" }}{{- $high = add $high 1 }}{{- end }}
-            {{- if eq .Severity "MEDIUM" }}{{- $medium = add $medium 1 }}{{- end }}
-            {{- if eq .Severity "LOW" }}{{- $low = add $low 1 }}{{- end }}
-        {{- end }}
-    {{- end }}
     <tr>
-        <th>Total TF Sec Misconfigurations</th>
-        {{ if gt $critical 0 }}<th>Critical Severity</th>{{ end }}
-        {{ if gt $high 0 }}<th>High Severity</th>{{ end }}
-        {{ if gt $medium 0 }}<th>Medium Severity</th>{{ end }}
-        {{ if gt $low 0 }}<th>Low Severity</th>{{ end }}
+        <th>Total Misconfigurations</th>{{- if gt $critical 0 }}
+        <th>Critical Severity</th>{{- end }}{{- if gt $high 0 }}
+        <th>High Severity</th>{{- end }}{{- if gt $medium 0 }}
+        <th>Medium Severity</th>{{- end }}{{- if gt $low 0 }}
+        <th>Low Severity</th>{{- end }}
     </tr>
     <tr>
-        {{ if gt $critical 0 }}<td>{{ $total }}</td>{{ end }}
-        {{ if gt $critical 0 }}<td>{{ $critical }}</td>{{ end }}
-        {{ if gt $high 0 }}<td>{{ $high }}</td>{{ end }}
-        {{ if gt $medium 0 }}<td>{{ $medium }}</td>{{ end }}
-        {{ if gt $low 0 }}<td>{{ $low }}</td>{{ end }}
+        {{ if gt $total 0 }}<td>{{ $total }}</td>{{- end }}{{- if gt $critical 0 }}
+        <td>{{ $critical }}</td>{{- end }}{{- if gt $high 0 }}
+        <td>{{ $high }}</td>{{- end }}{{- if gt $medium 0 }}
+        <td>{{ $medium }}</td>{{- end }}{{- if gt $low 0 }}
+        <td>{{ $low }}</td>{{- end }}
     </tr>
 </table>
+{{- else }}
+<h3>Trivy scan passed, no terraform security misconfiguration found.</h3>
+{{- end }}
 {{- else }}
 <h3>Trivy scan passed, no terraform security misconfiguration found.</h3>
 {{- end }}
