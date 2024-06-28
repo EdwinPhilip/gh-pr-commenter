@@ -56,10 +56,11 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		log.Printf("Error running command: %v\n", err)
 		output += fmt.Sprintf("\nError running command: %v\n", err)
 	}
-	if output == "" && err == nil {
-		time.Sleep(5 * time.Second)
+	if (output == "" || strings.Contains(output, "passed")) && err == nil {
 		outputExitCode = 0
-		output = fmt.Sprintf("%s passed.\n\nNo output was generated.", cmdName)
+		if cmdName == "tflint" {
+			output = fmt.Sprintf("%s passed.\n\nNo output was generated.", cmdName)
+		}
 	}
 
 	// Split output if it exceeds maxCommentLength
