@@ -106,13 +106,22 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 // splitMessage splits the message into parts each with a maximum length of maxCommentLength
 func splitMessage(message string) []string {
 	var parts []string
-	for i := 0; i < len(message); i += maxCommentLength {
-		end := i + maxCommentLength
-		if end > len(message) {
+	start := 0
+	for start < len(message) {
+		// Determine the end index, but don't split in the middle of a line
+		end := start + maxCommentLength
+		if end >= len(message) {
 			end = len(message)
+		} else {
+			// Look for the last newline character within the maxCommentLength
+			lastNewline := strings.LastIndex(message[start:end], "\n")
+			if lastNewline != -1 {
+				end = start + lastNewline + 1
+			}
 		}
-		part := message[i:end]
+		part := message[start:end]
 		parts = append(parts, part)
+		start = end
 	}
 	return parts
 }
