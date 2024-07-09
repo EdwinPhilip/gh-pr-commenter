@@ -51,11 +51,13 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	// Always capture command output, even if there's an error
 	output := out.String()
 	project_run_details := ""
+	project_identifier := ""
 	project_name := os.Getenv("PROJECT_NAME")
 	repo_rel_dir := os.Getenv("REPO_REL_DIR")
 	workspace := os.Getenv("WORKSPACE")
 	if project_name != "" && repo_rel_dir != "" && workspace != "" {
 		project_run_details = fmt.Sprintf("Project: `%s` Repo relative directory: `%s` Workspace: `%s`\n", project_name, repo_rel_dir, workspace)
+		project_identifier = fmt.Sprintf("%s-%s-%s", project_name, strings.ReplaceAll(repo_rel_dir, "/", "-"), workspace)
 	}
 
 	// Handle errors and log them
@@ -92,15 +94,15 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	// Create new markdown files with the combined content and post each as a comment
 	for i, part := range parts {
 		partWithID := strings.Replace(string(templateContent), "---OUTPUT---", part, 1)
-		partWithID = fmt.Sprintf("## %s output\n%s <!-- Part #%d -->\n\n%s", cmdName, partWithID, i+1, project_run_details)
-		newFilename := fmt.Sprintf(".comment-%s-%d-%s-part-%d.md", repo, prNumber, cmdName, i+1)
+		partWithID = fmt.Sprintf("## %s output\n%s <!-- Part #%d %s -->\n\n%s", cmdName, partWithID, i+1, project_identifier, project_run_details)
+		newFilename := fmt.Sprintf(".comment-%s-%d-%s-part-%d-%s.md", repo, prNumber, cmdName, i+1, project_identifier)
 		err := os.WriteFile(newFilename, []byte(partWithID), 0644)
 		if err != nil {
 			log.Fatalf("Error writing to file: %v", err)
 		}
 
 		// Use the existing logic to post the comment
-		internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("Part #%d", i+1))
+		internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("Part #%d %s", i+1, project_identifier))
 	}
 	// sleep for 5 seconds to allow the comment to be posted
 	time.Sleep(5 * time.Second)
