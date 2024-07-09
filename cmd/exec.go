@@ -57,7 +57,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	workspace := os.Getenv("WORKSPACE")
 	if project_name != "" && repo_rel_dir != "" && workspace != "" {
 		project_run_details = fmt.Sprintf("Project: `%s` Repo relative directory: `%s` Workspace: `%s`\n", project_name, repo_rel_dir, workspace)
-		project_identifier = fmt.Sprintf("%s-%s-%s", project_name, strings.ReplaceAll(repo_rel_dir, "/", "-"), workspace)
+		project_identifier = fmt.Sprintf("%s-%s", project_name, workspace)
 	}
 
 	// Handle errors and log them
