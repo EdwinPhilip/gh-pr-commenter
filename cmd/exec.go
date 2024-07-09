@@ -94,7 +94,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	// Create new markdown files with the combined content and post each as a comment
 	for i, part := range parts {
 		partWithID := strings.Replace(string(templateContent), "---OUTPUT---", part, 1)
-		partWithID = fmt.Sprintf("## %s output\n%s <!-- Part #%d %s -->\n\n%s", cmdName, partWithID, i+1, project_identifier, project_run_details)
+		partWithID = fmt.Sprintf("## %s output\n\n%s\n%s <!-- Part #%d %s -->", cmdName, project_run_details, partWithID, i+1, project_identifier)
 		newFilename := fmt.Sprintf(".comment-%s-%d-%s-part-%d-%s.md", repo, prNumber, cmdName, i+1, project_identifier)
 		err := os.WriteFile(newFilename, []byte(partWithID), 0644)
 		if err != nil {
