@@ -14,6 +14,9 @@ func PostCommitStatus(ctx context.Context, client *github.Client, owner, repo, s
 	if state == "failure" {
 		commit_state = "Failed"
 	}
+	if state == "pending" {
+		commit_state = "In Progress"
+	}
 	status := &github.RepoStatus{
 		State:       &state,
 		Description: &commit_state,

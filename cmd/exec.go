@@ -30,6 +30,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	cmdArgs = cmdArgs[1:]
 	outputExitCode := 1 
 	headCommit := os.Getenv("HEAD_COMMIT")
+	project_name := os.Getenv("PROJECT_NAME")
 	if headCommit == "" {
 		log.Fatalf("HEAD_COMMIT environment variable not set")
 	}
@@ -39,6 +40,9 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		ghStatusContext = "ghpc" + "/" + cmdName
 	} else {
 		ghStatusContext = ghStatusContext + "/" + cmdName
+	}
+	if project_name != "" {
+		ghStatusContext = ghStatusContext + ": " + project_name
 	}
 	internal.PostCommitStatus(ctx, client, owner, repo, headCommit, "pending", ghStatusContext)
 	// Execute the provided command and capture its output
@@ -52,7 +56,6 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	output := out.String()
 	project_run_details := ""
 	project_identifier := ""
-	project_name := os.Getenv("PROJECT_NAME")
 	repo_rel_dir := os.Getenv("REPO_REL_DIR")
 	workspace := os.Getenv("WORKSPACE")
 	if project_name != "" && repo_rel_dir != "" && workspace != "" {
