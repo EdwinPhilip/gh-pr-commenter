@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 	"time"
+	"strconv"
 
 	"github.com/google/go-github/v41/github"
 	"github.com/machinebox/graphql"
@@ -23,13 +24,18 @@ func ReadCommentFromFile(filename string) (string, error) {
 }
 
 // UpsertComment handles creating or updating comments on the specified PR
-func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber int, commentContentFile, title, identifier string) {
+func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, commentContentFile, title, identifier string) {
 	message, err := ReadCommentFromFile(commentContentFile)
 	if err != nil {
 		fmt.Printf("Error reading comment file: %v\n", err)
 		return
 	}
-	comments, err := listCommentsWithRetry(ctx, client, owner, repo, prNumber)
+	pullNum, err := strconv.Atoi(prNumber)
+	if err != nil {
+		fmt.Printf("Error converting PR number: %v\n", err)
+		return
+	}
+	comments, err := listCommentsWithRetry(ctx, client, owner, repo, pullNum)
 	if err != nil {
 		fmt.Printf("Error listing comments: %v\n", err)
 		return
@@ -44,7 +50,7 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 	timestamp := time.Now().Format(time.RFC3339)
 	uniquePart := fmt.Sprintf("%s\n<!-- Unique ID: %s -->", message, timestamp)
 	comment := &github.IssueComment{Body: &uniquePart}
-	err = createCommentWithRetry(ctx, client, owner, repo, prNumber, comment)
+	err = createCommentWithRetry(ctx, client, owner, repo, pullNum, comment)
 	if err != nil {
 		fmt.Printf("Error creating comment: %v\n", err)
 		return
@@ -54,14 +60,14 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 }
 
 // listCommentsWithRetry lists comments with retry logic and pagination
-func listCommentsWithRetry(ctx context.Context, client *github.Client, owner, repo string, prNumber int) ([]*github.IssueComment, error) {
+func listCommentsWithRetry(ctx context.Context, client *github.Client, owner, repo string, pullNum int) ([]*github.IssueComment, error) {
 	var allComments []*github.IssueComment
 	var err error
 
 	for i := 0; i < maxRetries; i++ {
 		opts := &github.IssueListCommentsOptions{ListOptions: github.ListOptions{PerPage: 100}}
 		for {
-			comments, resp, err := client.Issues.ListComments(ctx, owner, repo, prNumber, opts)
+			comments, resp, err := client.Issues.ListComments(ctx, owner, repo, pullNum, opts)
 			if err != nil {
 				fmt.Printf("Error listing comments (attempt %d/%d): %v\n", i+1, maxRetries, err)
 				time.Sleep(time.Second * time.Duration(1<<i)) // Exponential backoff
@@ -79,10 +85,10 @@ func listCommentsWithRetry(ctx context.Context, client *github.Client, owner, re
 }
 
 // createCommentWithRetry creates a comment with retry logic
-func createCommentWithRetry(ctx context.Context, client *github.Client, owner, repo string, prNumber int, comment *github.IssueComment) error {
+func createCommentWithRetry(ctx context.Context, client *github.Client, owner, repo string, pullNum int, comment *github.IssueComment) error {
 	var err error
 	for i := 0; i < maxRetries; i++ {
-		_, _, err = client.Issues.CreateComment(ctx, owner, repo, prNumber, comment)
+		_, _, err = client.Issues.CreateComment(ctx, owner, repo, pullNum, comment)
 		if err == nil {
 			return nil
 		}
