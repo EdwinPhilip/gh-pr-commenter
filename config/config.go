@@ -33,12 +33,17 @@ func Init(cmdName string) {
 	config.PullNum = os.Getenv("PULL_NUM")
 	config.TemplateFilename = os.Getenv("TEMPLATE_FILENAME")
 	config.GithubToken = os.Getenv("GITHUB_TOKEN")
-	if config.GHStatusContext != "" && config.ProjectName != "" {
-		config.GHStatusContext = config.GHStatusContext + "/" + cmdName + ": " + config.ProjectName
-	}
 	if config.ProjectName != "" && config.Workspace != "" {
 		config.ProjectRunDetails = fmt.Sprintf("project: `%s` workspace: `%s`\n", config.ProjectName, config.Workspace)
 		config.ProjectIdentifier = fmt.Sprintf("%s-%s", config.ProjectName, config.Workspace)
+	} else {
+		config.ProjectName = "atlantis"
+		config.Workspace = "default"
+	}
+	if config.GHStatusContext != "" && config.ProjectName != "" {
+		config.GHStatusContext = config.GHStatusContext + "/" + cmdName + ": " + config.ProjectName
+	} else {
+		config.GHStatusContext = "ghpc" + "/" + cmdName
 	}
 	if config.TemplateFilename == "" {
 		config.TemplateFilename = "template.md"

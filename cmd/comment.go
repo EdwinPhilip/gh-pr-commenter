@@ -50,7 +50,7 @@ func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.
 
 	for i, part := range parts {
 		partWithID := strings.Replace(string(templateContent), "---OUTPUT---", part, 1)
-		partWithID = fmt.Sprintf("## %s output\n\n%s\n%s <!-- Part #%d -->", cmdName, cnf.ProjectRunDetails, partWithID, i+1)
+		partWithID = fmt.Sprintf("## %s output\n%s <!-- Part #%d -->", cmdName, partWithID, i+1)
 		newFilename := fmt.Sprintf(".comment-%s-%s-%s-part-%d.md", repo, prNumber, cmdName, i+1)
 		err := os.WriteFile(newFilename, []byte(partWithID), 0644)
 		if err != nil {

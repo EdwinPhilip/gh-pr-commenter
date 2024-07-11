@@ -19,7 +19,6 @@ import (
 
 const maxCommentLength = 55000
 
-// ExecuteAndComment runs the provided command, captures its output, and posts it as a comment on the PR
 func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) {
 	// Split the command into command and arguments
 	cmdArgs := strings.Fields(command)
@@ -32,6 +31,9 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	outputExitCode := 1
 	config.Init(cmdName)
 	cnf, err := config.GetConfig()
+	if err != nil {
+		log.Fatalf("Error getting config: %v", err)
+	}
 	internal.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "pending", cnf.GHStatusContext)
 	// Execute the provided command and capture its output
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
@@ -54,9 +56,31 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 			output = fmt.Sprintf("%s passed.\n\nNo output was generated.", cmdName)
 		}
 	}
+	output = fmt.Sprintf("\n%s\n%s\n\n---\n", cnf.ProjectRunDetails, output)
 	newFilename := fmt.Sprintf(".output-%s.md", cmdName)
-	err = os.WriteFile(newFilename, []byte(output), 0644)
-	if err != nil {
+	
+	// Check if the file already exists
+	fileExists := false
+	if _, err := os.Stat(newFilename); err == nil {
+		fileExists = true
+	}
+	
+	// Append to the file if it exists, otherwise create a new file
+	var file *os.File
+	if fileExists {
+		file, err = os.OpenFile(newFilename, os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Fatalf("Error opening file: %v", err)
+		}
+	} else {
+		file, err = os.Create(newFilename)
+		if err != nil {
+			log.Fatalf("Error creating file: %v", err)
+		}
+	}
+	defer file.Close()
+
+	if _, err := file.WriteString(output); err != nil {
 		log.Fatalf("Error writing to file: %v", err)
 	}
 
