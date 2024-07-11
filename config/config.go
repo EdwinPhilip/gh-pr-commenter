@@ -39,7 +39,7 @@ func Init(cmdName string) {
 		config.TmpGhpcDir = "/tmp/ghpc"
 	}
 	if config.ProjectName != "" && config.Workspace != "" {
-		config.ProjectRunDetails = fmt.Sprintf("<h3>Project: <code>%s</code> Workspace: <code>%s</code><h3>\n", config.ProjectName, config.Workspace)
+		config.ProjectRunDetails = fmt.Sprintf("<h3>Project: <code>%s</code> Workspace: <code>%s</code></h3>\n", config.ProjectName, config.Workspace)
 		config.ProjectIdentifier = fmt.Sprintf("%s-%s", config.ProjectName, config.Workspace)
 	} else {
 		config.ProjectName = "atlantis"
