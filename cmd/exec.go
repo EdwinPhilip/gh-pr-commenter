@@ -57,7 +57,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 		}
 	}
 	output = fmt.Sprintf("\n%s\n%s\n\n---\n", cnf.ProjectRunDetails, output)
-	newFilename := fmt.Sprintf(".output-%s.md", cmdName)
+	newFilename := fmt.Sprintf("%s/.output-%s.md", cnf.TmpGhpcDir ,cmdName)
 	
 	// Check if the file already exists
 	fileExists := false

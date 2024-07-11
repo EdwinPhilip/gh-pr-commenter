@@ -27,10 +27,13 @@ func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.
 	if err != nil {
 		log.Fatalf("Error getting config: %v", err)
 	}
-	outputFilename := fmt.Sprintf(".output-%s.md", cmdName)
+	outputFilename := fmt.Sprintf("%s/.output-%s.md", cnf.TmpGhpcDir ,cmdName)
 	output, err := os.ReadFile(outputFilename)
 	if err != nil {
 		log.Fatalf("Error reading output file: %v", err)
+	} else {
+		log.Printf("Output file read successfully")
+		log.Printf("Output: %s", output)
 	}
 
 	// Split output if it exceeds maxCommentLength
