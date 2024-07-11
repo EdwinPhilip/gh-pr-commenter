@@ -127,13 +127,8 @@ func createDefaultTemplate(filename string, command string) error {
 </details>
 `
 	// if command contains trivy or tflint, use empty template as content
-	if strings.Contains(command, "trivy") {
+	if strings.Contains(command, "trivy") || strings.Contains(command, "tflint") {
 		content = `---OUTPUT---`
-	}
-	if strings.Contains(command, "tflint") {
-		content = "```"+`diff
----OUTPUT---
-`+"```\n"
 	}
     return os.WriteFile(filename, []byte(content), 0644)
 }
