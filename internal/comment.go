@@ -34,7 +34,7 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 	if err != nil {
 		return fmt.Errorf("error converting PR number: %v", err)
 	}
-	comments, err := listCommentsWithRetry(ctx, client, owner, repo, pullNum)
+	comments, err := ListCommentsWithRetry(ctx, client, owner, repo, pullNum)
 	if err != nil {
 		return fmt.Errorf("error listing comments: %v", err)
 	}
@@ -60,8 +60,8 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 	return nil
 }
 
-// listCommentsWithRetry lists comments with retry logic and pagination
-func listCommentsWithRetry(ctx context.Context, client *github.Client, owner, repo string, pullNum int) ([]*github.IssueComment, error) {
+// ListCommentsWithRetry lists comments with retry logic and pagination
+func ListCommentsWithRetry(ctx context.Context, client *github.Client, owner, repo string, pullNum int) ([]*github.IssueComment, error) {
 	var allComments []*github.IssueComment
 	var err error
 

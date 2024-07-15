@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"go.uber.org/zap"
 	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 const (
@@ -68,19 +68,28 @@ func Init(cmdName string) {
 		config.GHStatusContext = "ghpc" + "/" + cmdName
 	}
 
-	validateConfig()
+	// Log the environment variables right before validation
+	fmt.Println("HEAD_COMMIT:", config.HeadCommit)
+	fmt.Println("BASE_REPO_OWNER:", config.BaseRepoOwner)
+	fmt.Println("BASE_REPO_NAME:", config.BaseRepoName)
+	fmt.Println("PULL_NUM:", config.PullNum)
+	fmt.Println("GITHUB_TOKEN:", config.GithubToken)
+
+	ValidateConfig()
 	initLogger()
 }
 
-func validateConfig() {
+func ValidateConfig() {
 	requiredKeys := []string{
 		"HEAD_COMMIT", "BASE_REPO_OWNER", "BASE_REPO_NAME", "PULL_NUM", "GITHUB_TOKEN",
 	}
 
 	missingKeys := []string{}
 	for _, key := range requiredKeys {
-		if !viper.IsSet(key) {
+		if viper.GetString(key) == "" {
 			missingKeys = append(missingKeys, key)
+		} else {
+			log.Printf("Environment variable %s is set to: %s", key, viper.GetString(key))
 		}
 	}
 

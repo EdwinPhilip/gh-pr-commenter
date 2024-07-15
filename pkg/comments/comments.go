@@ -33,9 +33,9 @@ func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.
 	}
 	logger.Info("Output file read successfully", zap.String("output", string(output)))
 
-	parts := splitMessage(string(output))
+	parts := SplitMessage(string(output))
 
-	err = createDefaultTemplate(cnf.TemplateFilename, command)
+	err = CreateDefaultTemplate(cnf.TemplateFilename, command)
 	if err != nil {
 		return fmt.Errorf("error creating default template: %w", err)
 	}
@@ -62,7 +62,7 @@ func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.
 	return nil
 }
 
-func splitMessage(message string) []string {
+func SplitMessage(message string) []string {
 	var parts []string
 	start := 0
 	for start < len(message) {
@@ -82,7 +82,7 @@ func splitMessage(message string) []string {
 	return parts
 }
 
-func createDefaultTemplate(filename string, command string) error {
+func CreateDefaultTemplate(filename string, command string) error {
     content := `
 <details><summary>Show Output</summary>
 
