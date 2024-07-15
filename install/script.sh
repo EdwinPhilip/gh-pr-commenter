@@ -6,12 +6,15 @@ set -e
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
 
-# Map ARCH to Go ARCH
-case "$ARCH" in
-    x86_64) ARCH="amd64" ;;
-    aarch64) ARCH="arm64" ;;
-    *) echo "Unsupported architecture: $ARCH"; exit 1 ;;
-esac
+# If the OS is Linux, convert it to "linux"
+if [ "$OS" == "Linux" ]; then
+    OS="linux"
+fi
+
+# If the ARCH is x86_64, convert it to "amd64"
+if [ "$ARCH" == "x86_64" ]; then
+    ARCH="amd64"
+fi
 
 # Define GitHub repo and binary name
 REPO="EdwinPhilip/gh-pr-commenter"
@@ -30,8 +33,10 @@ DOWNLOAD_URL="https://github.com/$REPO/releases/download/$LATEST_RELEASE/$BINARY
 # Create a temporary directory
 TEMP_DIR=$(mktemp -d)
 
+echo "Downloading $BINARY_NAME $LATEST_RELEASE for $OS-$ARCH"
+
 # Download the binary to the temporary directory
-curl -L "$DOWNLOAD_URL" -o "$TEMP_DIR/$BINARY_NAME"
+curl -sL "$DOWNLOAD_URL" -o "$TEMP_DIR/$BINARY_NAME"
 
 # Make the binary executable
 chmod +x "$TEMP_DIR/$BINARY_NAME"

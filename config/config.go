@@ -111,5 +111,8 @@ func GetConfig() *Config {
 }
 
 func GetLogger() *zap.Logger {
+	if logger == nil {
+		initLogger()
+	}
 	return logger
 }
