@@ -5,19 +5,20 @@ import (
 	"fmt"
 	"strings"
 	"os"
-	"log"
 
 	"gh-pr-commenter/internal"
 	"gh-pr-commenter/config"
 
 	"github.com/google/go-github/v41/github"
 	"github.com/machinebox/graphql"
+	"go.uber.org/zap"
 )
 
 const maxCommentLength = 55000
 
 // Comment posts comments on the specified PR
 func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) error {
+	logger := config.GetLogger()
 	cmdArgs := strings.Fields(command)
 	if len(cmdArgs) == 0 {
 		return fmt.Errorf("empty command")
@@ -30,8 +31,7 @@ func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.
 	if err != nil {
 		return fmt.Errorf("error reading output file: %w", err)
 	}
-	log.Printf("Output file read successfully")
-	log.Printf("Output: %s", output)
+	logger.Info("Output file read successfully", zap.String("output", string(output)))
 
 	parts := splitMessage(string(output))
 

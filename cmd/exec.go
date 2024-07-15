@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -15,11 +14,13 @@ import (
 
 	"github.com/google/go-github/v41/github"
 	"github.com/machinebox/graphql"
+	"go.uber.org/zap"
 )
 
 const maxCommentLength = 55000
 
 func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) error {
+	logger := config.GetLogger()
 	cmdArgs := strings.Fields(command)
 	if len(cmdArgs) == 0 {
 		return fmt.Errorf("empty command")
@@ -42,7 +43,7 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	output := out.String()
 
 	if err != nil {
-		log.Printf("Error running command: %v\n", err)
+		logger.Error("Error running command", zap.Error(err))
 		output += fmt.Sprintf("\nError running command: %v\n", err)
 	}
 	if (output == "" || strings.Contains(output, "passed")) && err == nil {

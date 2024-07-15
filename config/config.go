@@ -5,6 +5,7 @@ import (
 	"log"
 	"strings"
 
+	"go.uber.org/zap"
 	"github.com/spf13/viper"
 )
 
@@ -30,7 +31,10 @@ type Config struct {
 	TmpGhpcDir        string
 }
 
-var config *Config
+var (
+	config *Config
+	logger *zap.Logger
+)
 
 func Init(cmdName string) {
 	viper.AutomaticEnv()
@@ -65,6 +69,7 @@ func Init(cmdName string) {
 	}
 
 	validateConfig()
+	initLogger()
 }
 
 func validateConfig() {
@@ -84,6 +89,18 @@ func validateConfig() {
 	}
 }
 
+func initLogger() {
+	var err error
+	logger, err = zap.NewProduction()
+	if err != nil {
+		log.Fatalf("Failed to initialize zap logger: %v", err)
+	}
+}
+
 func GetConfig() *Config {
 	return config
+}
+
+func GetLogger() *zap.Logger {
+	return logger
 }
