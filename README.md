@@ -1,68 +1,148 @@
 # GitHub PR Commenter (ghpc)
 
-GitHub PR Commenter is a tool that automates the process of executing commands and posting their output as comments on GitHub Pull Requests (PRs).
+GitHub PR Commenter (ghpc) is a tool that automates the process of executing commands and posting their output as comments on GitHub Pull Requests (PRs). Inspired by Atlantis, ghpc aims to streamline the integration of command execution and result reporting within the PR workflow.
+
+## Motivation
+
+The motivation behind creating ghpc is to provide a seamless way to run various checks and commands automatically and post their results directly to GitHub pull requests. By automating this process, ghpc helps developers get immediate feedback on their changes, leading to faster and more efficient code reviews. The tool aims to:
+
+- **Improve Developer Productivity**: Automate repetitive tasks and provide instant feedback on pull requests.
+- **Enhance Collaboration**: Enable better collaboration by ensuring all team members have access to the latest results of automated checks.
+- **Increase Code Quality**: Automate linting, testing, and other checks to ensure that only high-quality code gets merged.
 
 ## Overview
 
-This tool leverages GitHub's API and GraphQL to interact with PRs and comments. It allows you to run commands, capture their output, and post the output as comments on GitHub PRs.
+ghpc leverages GitHub's API and GraphQL to interact with PRs and comments. It allows you to run commands, capture their output, and post the output as comments on GitHub PRs. The tool is designed to be extensible and configurable, with a focus on error handling, logging, and testing.
 
 ## Features
 
-- **Comment Automation:** Automatically posts comments on pull requests with command outputs.
-- **GitHub Actions Integration:** Uses GitHub Actions for building, testing, and releasing.
-- **Multi-Architecture Builds:** Supports builds for multiple architectures including Linux and Darwin (AMD64 and ARM64).
-- **Output Handling:** Handles command outputs exceeding 55000 characters by splitting them into multiple comments.
+- **Comment Automation**: Automatically posts comments on pull requests with command outputs.
+- **GitHub Actions Integration**: Uses GitHub Actions for building, testing, and releasing.
+- **Multi-Architecture Builds**: Supports builds for multiple architectures including Linux and Darwin (AMD64 and ARM64).
+- **Output Handling**: Handles command outputs exceeding 55000 characters by splitting them into multiple comments.
+- **Error Handling**: Provides detailed error handling and logging using the `zap` logging package.
+- **Modular Design**: Follows a modular code structure for easy maintenance and extension.
+- **Environment Variable Configuration**: Configurable via environment variables for flexible setup.
+- **Enhanced Logging**: Uses structured logging with `zap` for better traceability and debugging.
+- **Atlantis Integration**: Designed to be used in Atlantis Docker images for custom workflows.
 
-## Usage
+## Integration with Atlantis
+
+ghpc is created with the intent to be used within Atlantis Docker images for custom workflows. This allows for running commands (e.g., `tflint`), capturing their output, and posting the results as comments on PRs. It enables capturing output from multiple projects in one PR in Atlantis and comments on the PR output with commit status checks for each command.
+
+## Installation
 
 ### Prerequisites
 
 - Go 1.21.6 or higher installed on your machine.
 - GitHub token set as `GITHUB_TOKEN` environment variable.
 
-### Installation
-
-Clone the repository:
+### Clone the Repository
 
 ```bash
 git clone https://github.com/EdwinPhilip/gh-pr-commenter.git
 cd gh-pr-commenter
 ```
 
-Build the project:
+### Build the Project
 
 ```bash
 go build -o ghpc .
 ```
 
-### Configuration
+## Configuration
 
 1. Set environment variables:
+   - `HEAD_COMMIT`: The commit SHA to set the status on.
+   - `PROJECT_NAME`: The name of the project.
+   - `GH_STATUS_CONTEXT`: The status context.
+   - `WORKSPACE`: The workspace name.
    - `BASE_REPO_OWNER`: Owner of the base repository.
    - `BASE_REPO_NAME`: Name of the base repository.
    - `PULL_NUM`: PR number where the comments will be posted.
-   - `GITHUB_TOKEN`: GitHub token
+   - `GITHUB_TOKEN`: GitHub token.
 
-2. Customize `template.md` file for comment formatting.
+2. Customize the `template.md` file for comment formatting.
 
-### Running
+## Usage
 
-Execute a command and post its output as a PR comment:
+### Step 1: Execute a Command and Capture its Output
+
+The `ghpc exec` command executes a specified command and captures its output in a file.
 
 ```bash
 ./ghpc exec "tflint"
 ```
 
-### GitHub Actions
+This will execute the `tflint` command and save the output to a file in the temporary directory specified by the environment variable `TMP_GHPC_DIR` (default is `/tmp/ghpc`).
 
-This project includes GitHub Actions for continuous integration and release automation:
+### Step 2: Post the Captured Output as a PR Comment
 
-- **Build Workflow**: Automatically builds the project for multiple architectures on each push event.
-- **Release Workflow**: Creates a new release and tags it with version numbers specified during workflow dispatch.
+The `ghpc comment` command reads the captured output file and posts its content as a comment on the specified pull request.
 
-### Versioning
+```bash
+./ghpc comment "tflint"
+```
 
-The project follows Semantic Versioning (SemVer). Tags pushed to the main branch with a version format (`v*.*.*`) will trigger a version bump and release.
+This will read the output file generated by the `ghpc exec` command and post its content as a comment on the pull request specified by the environment variables.
+
+## Development
+
+For detailed development instructions, see [docs/development.md](docs/development.md).
+
+## Testing
+
+For detailed testing instructions, see [docs/testing.md](docs/testing.md).
+
+## TODO
+
+For a list of TODO items and future enhancements, see [docs/TODO.md](docs/TODO.md).
+
+## Example Workflow
+
+1. **Setup GitHub Actions**: Integrate ghpc into your GitHub Actions workflow to automatically run commands and post results on PRs.
+2. **Configure Environment Variables**: Set the necessary environment variables in your GitHub Actions workflow.
+3. **Run Commands**: Use ghpc to run commands such as linting, testing, or security checks.
+4. **Post Results**: Automatically post the results as comments on the relevant pull request.
+
+### Sample GitHub Actions Workflow
+
+```yaml
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.21.6
+
+      - name: Build ghpc
+        run: |
+          go build -o ghpc .
+
+      - name: Run TFLint and post results
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_COMMIT: ${{ github.event.pull_request.head.sha }}
+          BASE_REPO_OWNER: ${{ github.repository_owner }}
+          BASE_REPO_NAME: ${{ github.event.repository.name }}
+          PULL_NUM: ${{ github.event.pull_request.number }}
+        run: |
+          ./ghpc exec "tflint"
+          ./ghpc comment "tflint"
+```
 
 ## License
 
