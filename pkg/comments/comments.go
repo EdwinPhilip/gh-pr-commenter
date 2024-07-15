@@ -24,10 +24,7 @@ func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.
 	}
 	cmdName := cmdArgs[0]
 	config.Init(cmdName)
-	cnf, err := config.GetConfig()
-	if err != nil {
-		return fmt.Errorf("error getting config: %w", err)
-	}
+	cnf := config.GetConfig()
 	outputFilename := fmt.Sprintf("%s/.output-%s.md", cnf.TmpGhpcDir ,cmdName)
 	output, err := os.ReadFile(outputFilename)
 	if err != nil {

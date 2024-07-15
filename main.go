@@ -25,15 +25,13 @@ func main() {
 		return
 	}
 	config.Init(cmdName)
-	cnf, err := config.GetConfig()
-	if err != nil {
-		log.Fatalf("Error getting config: %v", err)
-	}
+	cnf := config.GetConfig()
 
 	ctx := context.Background()
 	client := internal.NewGitHubClient(ctx)
 	graphqlClient := graphql.NewClient("https://api.github.com/graphql")
 
+	var err error
 	switch runCommand {
 	case "exec":
 		err = cmd.ExecuteAndComment(ctx, client, graphqlClient, cnf.BaseRepoOwner, cnf.BaseRepoName, cnf.PullNum, command)

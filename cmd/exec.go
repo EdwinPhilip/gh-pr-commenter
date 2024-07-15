@@ -28,11 +28,8 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	cmdArgs = cmdArgs[1:]
 	outputExitCode := 1
 	config.Init(cmdName)
-	cnf, err := config.GetConfig()
-	if err != nil {
-		return fmt.Errorf("error getting config: %w", err)
-	}
-	err = status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "pending", cnf.GHStatusContext)
+	cnf := config.GetConfig()
+	err := status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "pending", cnf.GHStatusContext)
 	if err != nil {
 		return fmt.Errorf("error posting commit status: %w", err)
 	}
