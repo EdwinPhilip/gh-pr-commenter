@@ -34,20 +34,27 @@ ghpc is created with the intent to be used within Atlantis Docker images for cus
 
 ### Prerequisites
 
-- Go 1.21.6 or higher installed on your machine.
 - GitHub token set as `GITHUB_TOKEN` environment variable.
 
-### Clone the Repository
+### Download from GitHub Releases
 
-```bash
-git clone https://github.com/EdwinPhilip/gh-pr-commenter.git
-cd gh-pr-commenter
+1. Visit the [GitHub releases page](https://github.com/EdwinPhilip/gh-pr-commenter/releases).
+2. Download the appropriate binary for your operating system and architecture (e.g., `ghpc-linux-amd64`, `ghpc-darwin-arm64`).
+
+### Verify the Download
+
+```sh
+chmod +x ghpc-<os>-<arch>
+./ghpc-<os>-<arch> --version
 ```
 
-### Build the Project
+### Example:
 
-```bash
-go build -o ghpc .
+For Linux AMD64:
+
+```sh
+chmod +x ghpc-linux-amd64
+./ghpc-linux-amd64 --version
 ```
 
 ## Configuration
@@ -70,7 +77,7 @@ go build -o ghpc .
 
 The `ghpc exec` command executes a specified command and captures its output in a file.
 
-```bash
+```sh
 ./ghpc exec "tflint"
 ```
 
@@ -80,7 +87,7 @@ This will execute the `tflint` command and save the output to a file in the temp
 
 The `ghpc comment` command reads the captured output file and posts its content as a comment on the specified pull request.
 
-```bash
+```sh
 ./ghpc comment "tflint"
 ```
 
