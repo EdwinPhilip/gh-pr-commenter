@@ -19,11 +19,10 @@ import (
 
 const maxCommentLength = 55000
 
-func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) {
+func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) error {
 	cmdArgs := strings.Fields(command)
 	if len(cmdArgs) == 0 {
-		log.Printf("Empty command")
-		return
+		return fmt.Errorf("empty command")
 	}
 	cmdName := cmdArgs[0]
 	cmdArgs = cmdArgs[1:]
@@ -31,9 +30,12 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	config.Init(cmdName)
 	cnf, err := config.GetConfig()
 	if err != nil {
-		log.Fatalf("Error getting config: %v", err)
+		return fmt.Errorf("error getting config: %w", err)
 	}
-	status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "pending", cnf.GHStatusContext)
+	err = status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "pending", cnf.GHStatusContext)
+	if err != nil {
+		return fmt.Errorf("error posting commit status: %w", err)
+	}
 	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	var out bytes.Buffer
 	cmd.Stdout = &out
@@ -64,24 +66,31 @@ func ExecuteAndComment(ctx context.Context, client *github.Client, graphqlClient
 	if fileExists {
 		file, err = os.OpenFile(newFilename, os.O_APPEND|os.O_WRONLY, 0644)
 		if err != nil {
-			log.Fatalf("Error opening file: %v", err)
+			return fmt.Errorf("error opening file: %w", err)
 		}
 	} else {
 		file, err = os.Create(newFilename)
 		if err != nil {
-			log.Fatalf("Error creating file: %v", err)
+			return fmt.Errorf("error creating file: %w", err)
 		}
 	}
 	defer file.Close()
 
 	if _, err := file.WriteString(output); err != nil {
-		log.Fatalf("Error writing to file: %v", err)
+		return fmt.Errorf("error writing to file: %w", err)
 	}
 
 	time.Sleep(5 * time.Second)
 	if outputExitCode == 0 {
-		status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "success", cnf.GHStatusContext)
-		return
+		err = status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "success", cnf.GHStatusContext)
+		if err != nil {
+			return fmt.Errorf("error posting success status: %w", err)
+		}
+		return nil
 	}
-	status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "failure", cnf.GHStatusContext)
+	err = status.PostCommitStatus(ctx, client, owner, repo, cnf.HeadCommit, "failure", cnf.GHStatusContext)
+	if err != nil {
+		return fmt.Errorf("error posting failure status: %w", err)
+	}
+	return nil
 }

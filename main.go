@@ -35,13 +35,14 @@ func main() {
 	graphqlClient := graphql.NewClient("https://api.github.com/graphql")
 
 	switch runCommand {
-		case "exec":
-			cmd.ExecuteAndComment(ctx, client, graphqlClient, cnf.BaseRepoOwner, cnf.BaseRepoName, cnf.PullNum, command)
-		case "comment":
-			cmd.Comment(ctx, client, graphqlClient, cnf.BaseRepoOwner, cnf.BaseRepoName, cnf.PullNum, command)
-		default:
-			log.Fatalf("unknown command: %s", runCommand)
+	case "exec":
+		err = cmd.ExecuteAndComment(ctx, client, graphqlClient, cnf.BaseRepoOwner, cnf.BaseRepoName, cnf.PullNum, command)
+	case "comment":
+		err = cmd.Comment(ctx, client, graphqlClient, cnf.BaseRepoOwner, cnf.BaseRepoName, cnf.PullNum, command)
+	default:
+		log.Fatalf("unknown command: %s", runCommand)
+	}
+	if err != nil {
+		log.Fatalf("Error executing command: %v", err)
 	}
 }
-
-

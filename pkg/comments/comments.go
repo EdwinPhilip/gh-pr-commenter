@@ -14,39 +14,38 @@ import (
 	"github.com/machinebox/graphql"
 )
 
+const maxCommentLength = 55000
+
 // Comment posts comments on the specified PR
-func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) {
+func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) error {
 	cmdArgs := strings.Fields(command)
 	if len(cmdArgs) == 0 {
-		log.Printf("Empty command")
-		return
+		return fmt.Errorf("empty command")
 	}
 	cmdName := cmdArgs[0]
 	config.Init(cmdName)
 	cnf, err := config.GetConfig()
 	if err != nil {
-		log.Fatalf("Error getting config: %v", err)
+		return fmt.Errorf("error getting config: %w", err)
 	}
 	outputFilename := fmt.Sprintf("%s/.output-%s.md", cnf.TmpGhpcDir ,cmdName)
 	output, err := os.ReadFile(outputFilename)
 	if err != nil {
-		log.Fatalf("Error reading output file: %v", err)
-	} else {
-		log.Printf("Output file read successfully")
-		log.Printf("Output: %s", output)
+		return fmt.Errorf("error reading output file: %w", err)
 	}
+	log.Printf("Output file read successfully")
+	log.Printf("Output: %s", output)
 
 	parts := splitMessage(string(output))
 
 	err = createDefaultTemplate(cnf.TemplateFilename, command)
 	if err != nil {
-		log.Fatalf("Error creating default template: %v", err)
+		return fmt.Errorf("error creating default template: %w", err)
 	}
 
 	templateContent, err := os.ReadFile(cnf.TemplateFilename)
 	if err != nil {
-		log.Printf("Error reading template file: %v\n", err)
-		return
+		return fmt.Errorf("error reading template file: %w", err)
 	}
 
 	for i, part := range parts {
@@ -55,11 +54,15 @@ func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.
 		newFilename := fmt.Sprintf(".comment-%s-%s-%s-part-%d.md", repo, prNumber, cmdName, i+1)
 		err := os.WriteFile(newFilename, []byte(partWithID), 0644)
 		if err != nil {
-			log.Fatalf("Error writing to file: %v", err)
+			return fmt.Errorf("error writing to file: %w", err)
 		}
 
-		internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("Part #%d", i+1))
+		err = internal.UpsertComment(ctx, client, graphqlClient, owner, repo, prNumber, newFilename, fmt.Sprintf("## %s output", cmdName), fmt.Sprintf("Part #%d", i+1))
+		if err != nil {
+			return fmt.Errorf("error upserting comment: %w", err)
+		}
 	}
+	return nil
 }
 
 func splitMessage(message string) []string {

@@ -9,6 +9,6 @@ import (
 	"github.com/machinebox/graphql"
 )
 
-func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) {
-	comments.Comment(ctx, client, graphqlClient, owner, repo, prNumber, command)
+func Comment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, command string) error {
+	return comments.Comment(ctx, client, graphqlClient, owner, repo, prNumber, command)
 }

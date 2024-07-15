@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
-	"strconv"
 
 	"github.com/google/go-github/v41/github"
 	"github.com/machinebox/graphql"
@@ -14,6 +14,7 @@ import (
 
 const maxRetries = 3
 const minimizedMarker = "<!-- MINIMIZED -->"
+
 // ReadCommentFromFile reads the comment message from a file
 func ReadCommentFromFile(filename string) (string, error) {
 	content, err := os.ReadFile(filename)
@@ -24,27 +25,27 @@ func ReadCommentFromFile(filename string) (string, error) {
 }
 
 // UpsertComment handles creating or updating comments on the specified PR
-func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, commentContentFile, title, identifier string) {
+func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *graphql.Client, owner, repo string, prNumber string, commentContentFile, title, identifier string) error {
 	message, err := ReadCommentFromFile(commentContentFile)
 	if err != nil {
-		fmt.Printf("Error reading comment file: %v\n", err)
-		return
+		return fmt.Errorf("error reading comment file: %v", err)
 	}
 	pullNum, err := strconv.Atoi(prNumber)
 	if err != nil {
-		fmt.Printf("Error converting PR number: %v\n", err)
-		return
+		return fmt.Errorf("error converting PR number: %v", err)
 	}
 	comments, err := listCommentsWithRetry(ctx, client, owner, repo, pullNum)
 	if err != nil {
-		fmt.Printf("Error listing comments: %v\n", err)
-		return
+		return fmt.Errorf("error listing comments: %v", err)
 	}
 
 	existingComments := filterCommentsByTitleAndIdentifier(comments, title, identifier)
 
 	// Always hide previous comments
-	minimizeComments(ctx, graphqlClient, existingComments)
+	err = minimizeComments(ctx, graphqlClient, existingComments)
+	if err != nil {
+		return fmt.Errorf("error minimizing comments: %v", err)
+	}
 
 	// Always create new parts with unique content to avoid collapsing
 	timestamp := time.Now().Format(time.RFC3339)
@@ -52,11 +53,11 @@ func UpsertComment(ctx context.Context, client *github.Client, graphqlClient *gr
 	comment := &github.IssueComment{Body: &uniquePart}
 	err = createCommentWithRetry(ctx, client, owner, repo, pullNum, comment)
 	if err != nil {
-		fmt.Printf("Error creating comment: %v\n", err)
-		return
+		return fmt.Errorf("error creating comment: %v", err)
 	}
 
 	fmt.Println("Comment upserted successfully.")
+	return nil
 }
 
 // listCommentsWithRetry lists comments with retry logic and pagination
@@ -124,7 +125,7 @@ func minimizeCommentWithRetry(ctx context.Context, graphqlClient *graphql.Client
 }
 
 // minimizeComments hides the given comments using the minimizeComment GraphQL mutation
-func minimizeComments(ctx context.Context, graphqlClient *graphql.Client, comments []*github.IssueComment) {
+func minimizeComments(ctx context.Context, graphqlClient *graphql.Client, comments []*github.IssueComment) error {
 	for _, comment := range comments {
 		// Skip comments that already have the minimized marker
 		if strings.Contains(comment.GetBody(), minimizedMarker) {
@@ -132,14 +133,17 @@ func minimizeComments(ctx context.Context, graphqlClient *graphql.Client, commen
 		}
 		err := minimizeCommentWithRetry(ctx, graphqlClient, comment.GetNodeID())
 		if err != nil {
-			fmt.Printf("Error minimizing comment: %v\n", err)
-			return
+			return fmt.Errorf("error minimizing comment: %v", err)
 		}
 		// Add the minimized marker to the comment body
 		updatedBody := comment.GetBody() + "\n" + minimizedMarker
-		updateCommentBody(ctx, graphqlClient, comment.GetNodeID(), updatedBody)
+		err = updateCommentBody(ctx, graphqlClient, comment.GetNodeID(), updatedBody)
+		if err != nil {
+			return fmt.Errorf("error updating comment body: %v", err)
+		}
 	}
 	fmt.Println("Comments minimized successfully.")
+	return nil
 }
 
 // minimizeComment sends the minimizeComment GraphQL mutation
