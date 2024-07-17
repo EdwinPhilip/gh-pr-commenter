@@ -28,9 +28,14 @@ jobs:
         run: |
           go test ./tests/...
 
+      - name: Get Git Tag
+        id: get_tag
+        run: |
+          echo "GIT_TAG=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+
       - name: Build
         run: |
-          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -o build/${{ matrix.goos }}_${{ matrix.goarch }}/ghpc-${{ matrix.goos }}-${{ matrix.goarch }}
+          GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags "-X main.version=${{ env.GIT_TAG }}" -o build/${{ matrix.goos }}_${{ matrix.goarch }}/ghpc-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
