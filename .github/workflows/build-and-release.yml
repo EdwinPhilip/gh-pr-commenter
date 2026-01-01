@@ -38,7 +38,7 @@ jobs:
           GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags "-X main.version=${{ env.GIT_TAG }}" -o build/${{ matrix.goos }}_${{ matrix.goarch }}/ghpc-${{ matrix.goos }}-${{ matrix.goarch }}
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ghpc-${{ matrix.goos }}-${{ matrix.goarch }}
           path: build/${{ matrix.goos }}_${{ matrix.goarch }}/ghpc-${{ matrix.goos }}-${{ matrix.goarch }}
